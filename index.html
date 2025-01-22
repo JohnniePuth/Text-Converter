@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to Text Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#1a202c',
+                        darkText: '#e2e8f0',
+                        darkBorder: '#4a5568',
+                        darkAccent: '#2d3748'
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-darkBg text-darkText flex items-center justify-center min-h-screen">
+    <div class="bg-darkAccent p-8 rounded-lg shadow-md w-full max-w-md text-center">
+        <h1 class="text-2xl font-bold mb-6">Image to Text Converter</h1>
+        <label for="imageInput" class="block mb-4 cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg">Choose an Image File</label>
+        <input type="file" id="imageInput" accept="image/*" class="hidden">
+        <div class="p-4 border-2 border-dashed border-darkBorder rounded-lg mb-4 bg-darkBg text-gray-400">
+            <p class="mb-2">Paste an image here or click above to upload.</p>
+            <p>(Use <strong>Ctrl+V</strong> or <strong>Cmd+V</strong> to paste)</p>
+        </div>
+        <button id="extractButton" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg">Extract Text</button>
+        <div id="outputContainer" class="mt-6">
+            <p class="text-lg font-medium">Uploaded/Pasted Image:</p>
+            <div id="imageDisplay" class="mt-2 flex justify-center"></div>
+            <p class="text-lg font-medium mt-4">Extracted Text:</p>
+            <div id="outputText" class="mt-2 p-4 border border-darkBorder rounded-lg bg-darkAccent min-h-[100px] text-center whitespace-pre-wrap"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
+    <script>
+        document.getElementById('extractButton').addEventListener('click', () => {
+            const imageInput = document.getElementById('imageInput');
+            const imageDisplay = document.getElementById('imageDisplay');
+            const outputText = document.getElementById('outputText');
+
+            outputText.innerText = ''; // Clear previous output
+            imageDisplay.innerHTML = ''; // Clear previous image
+
+            if (imageInput.files.length === 0) {
+                alert('Please select an image file.');
+                return;
+            }
+
+            const imageFile = imageInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imageDisplay.innerHTML = `<img src="${e.target.result}" alt="Uploaded Image" class="max-w-full rounded-lg">`;
+            };
+            reader.readAsDataURL(imageFile);
+
+            Tesseract.recognize(
+                imageFile,
+                'eng',
+                {
+                    logger: info => console.log(info) // Optional: log progress
+                }
+            ).then(({ data: { text } }) => {
+                outputText.innerText = text || "No text detected.";
+            }).catch(error => {
+                outputText.innerText = `Error: ${error.message}`;
+            });
+        });
+
+        document.addEventListener('paste', (event) => {
+            const items = event.clipboardData.items;
+            let file = null;
+
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    file = items[i].getAsFile();
+                    break;
+                }
+            }
+
+            if (file) {
+                const imageDisplay = document.getElementById('imageDisplay');
+                const outputText = document.getElementById('outputText');
+                outputText.innerText = ''; // Clear previous output
+                imageDisplay.innerHTML = ''; // Clear previous image
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imageDisplay.innerHTML = `<img src="${e.target.result}" alt="Pasted Image" class="max-w-full rounded-lg">`;
+                };
+                reader.readAsDataURL(file);
+
+                Tesseract.recognize(
+                    file,
+                    'eng',
+                    {
+                        logger: info => console.log(info) // Optional: log progress
+                    }
+                ).then(({ data: { text } }) => {
+                    outputText.innerText = text || "No text detected.";
+                }).catch(error => {
+                    outputText.innerText = `Error: ${error.message}`;
+                });
+            } else {
+                alert('No image detected in paste.');
+            }
+        });
+    </script>
+</body>
+</html>
